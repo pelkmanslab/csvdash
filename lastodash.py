@@ -3,10 +3,11 @@ import os
 import pandas
 import dash
 import dash_daq as daq
-from dash.dependencies import Input, Output, State
+from dash.dependencies import Input, Output
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_table as dt
+import base64
 
 from plotly import tools
 import plotly.graph_objs as go
@@ -19,6 +20,8 @@ app = dash.Dash(__name__)
 
 app.css.config.serve_locally = True
 app.scripts.config.serve_locally = True
+
+server = app.server
 
 
 def parse_args():
@@ -43,7 +46,12 @@ def parse_args():
     return args.lasfile, args.debug
 
 
-lasfile, debug = parse_args()
+if 'DASH_APP_NAME' in os.environ:
+    lasfile = open('./alcor1.las')
+    debug = True
+else: 
+    lasfile, debug = parse_args()
+
 lf = lasio.read(lasfile)
 
 
@@ -56,24 +64,58 @@ def generate_frontpage():
     # get the header
     frontpage.append(
         html.Div(id='las-header', children=[
-            html.H1("LAS Report"),
-            html.Div(id='las-file-info', children=[
-                html.B(id='las-filename',
-                       children=filename),
-                html.Span('({0})'.format(lf.version['VERS'].descr
-                                         if 'VERS' in lf.version
-                                         else 'Unknown version'))
+
+            html.Img(
+                id='las-logo',
+                src='data:image/png;base64,{}'.format(
+                    base64.b64encode(
+                        open('assets/logo.png', 'rb').read()
+                    ).decode()
+                )
+            ), 
+
+            html.Div(
+                id='las-header-text',
+                children=[
+                    html.H1("LAS Report"),
+                    html.Div(id='las-file-info', children=[
+                        html.B(id='las-filename',
+                               children=filename),
+                        html.Span('({0})'.format(lf.version['VERS'].descr
+                                                 if 'VERS' in lf.version
+                                                 else 'Unknown version'))
+                    ])
+                ])
             ])
-        ])
-    )
+        )
     
     return frontpage
 
 
+def generate_axis_title(descr, unit):
+    title_words = descr.split(' ')
+    
+    current_line = ''
+    lines = []
+    for word in title_words:
+        if len(current_line) + len(word) > 15:
+            lines.append(current_line[:-1])
+            current_line = ''
+        current_line += '{} '.format(word)
+    lines.append(current_line)
+                       
+    title = '<br>'.join(lines)
+    title += '<br>({})'.format(unit)
+
+    return title
+
+
 def generate_curves(
-        height=1400, width=1000,
+        height=950, width=725,
         bg_color='white',
-        font_size=10
+        font_size=10,
+        tick_font_size=8,
+        line_width=0.5
 ):
     # include one graph for all curves, since they have the same x axis
     yvals = 'DEPT'
@@ -101,11 +143,11 @@ def generate_curves(
                 x=lf.curves[column].data,
                 y=lf.curves[yvals].data,
                 name=column,
-                line={'width': 0.5,
+                line={'width': line_width,
                       'dash': 'dashdot' if column in plots[1] else 'solid'},
             ), row=1, col=i+1)
             fig['layout']['xaxis{}'.format(i+1)].update(
-                title='{} ({})'.format(
+                title=generate_axis_title(
                     lf.curves[plots[i][0]]['descr'],
                     lf.curves[plots[i][0]]['unit']
                 ),
@@ -122,7 +164,7 @@ def generate_curves(
         overlaying='x1',
         anchor='y',
         side='top',
-        title='{} ({})'.format(
+        title=generate_axis_title(
             lf.curves['DGRC']['descr'],
             lf.curves['DGRC']['unit']
         )
@@ -133,7 +175,7 @@ def generate_curves(
         overlaying='x2',
         anchor='y',
         side='top',
-        title='{} ({})'.format(
+        title=generate_axis_title(
             lf.curves['EWXT']['descr'],
             lf.curves['EWXT']['unit']
         )
@@ -144,7 +186,7 @@ def generate_curves(
         overlaying='x3',
         anchor='y',
         side='top',
-        title='{} ({})'.format(
+        title=generate_axis_title(
             lf.curves['ALDCLC']['descr'],
             lf.curves['ALDCLC']['unit']
         )
@@ -155,7 +197,7 @@ def generate_curves(
         overlaying='x5',
         anchor='y',
         side='top',
-        title='{} ({})'.format(
+        title=generate_axis_title(
             lf.curves['BTCS']['descr'],
             lf.curves['BTCS']['unit']
         )
@@ -163,21 +205,29 @@ def generate_curves(
 
     # y axis title 
     fig['layout']['yaxis'].update(
-        title='{} ({})'.format(
+        title=generate_axis_title(
             lf.curves[yvals]['descr'],
             lf.curves[yvals]['unit']
-        )
+        ),
+        autorange='reversed'
     )
 
     for axis in fig['layout']:
         if re.search(r'[xy]axis[0-9]*', axis):
             fig['layout'][axis].update(
                 mirror='all',
+                automargin=True,
                 showline=True,
-                titlefont=dict(
-                    family='Arial, sans-serif',
-                    size=font_size
+                title=dict(
+                    font=dict(
+                        family='Arial, sans-serif',
+                        size=font_size
+                    )
                 ),
+                tickfont=dict(
+                    family='Arial, sans-serif',
+                    size=tick_font_size
+                )
             )
     
     fig['layout'].update(
@@ -185,7 +235,15 @@ def generate_curves(
         width=width,
         plot_bgcolor=bg_color,
         paper_bgcolor=bg_color,
-        hovermode='y'
+        hovermode='y',
+        legend={
+            'font': {
+                'size': tick_font_size
+            }
+        },
+        margin=go.layout.Margin(
+            r=100
+        )
     )
 
     return dcc.Graph(figure=fig)
@@ -221,35 +279,12 @@ def generate_table():
         data=df.to_dict("rows")
     )
 
-    return html.Table(
-        [html.Tr([
-            html.Td([
-                col.upper() if col is not 'descr'
-                else 'description'.upper()
-            ], className='col-name')
-            for col in cols
-        ])] + [
-            html.Tr([
-                html.Td([
-                    lf.well[i][col]
-                ], className='col-entry')
-                for col in cols
-            ])
-            for i in range(len(lf.well))
-        ])
-
 
 app.layout = html.Div([
     html.Div(
         id='controls',
         children=[
-            "Graph size", 
-            daq.ToggleSwitch(
-                id='graph-size',
-                label=['web', 'print'],
-                value=False
-            ), 
-            html.Button(
+           html.Button(
                 "Print",
                 id='las-print'
             ),
@@ -265,34 +300,64 @@ app.layout = html.Div([
     html.Div(
         className='section-title',
         children="LAS well"
-    ), 
-    html.Div(
-        id='las-table',
-        className='page',
-        children=generate_table()
     ),
-
+     
+    html.Div(
+        className='page',
+        children=[
+            html.Div(
+                id='las-table',
+                children=generate_table()
+            ),
+            html.Div(
+                id='las-table-print'
+            )]
+    ), 
     html.Div(
         className='section-title',
         children="LAS curves"
     ), 
     html.Div(
-        id='las-curves',
         className='page',
-        children=generate_curves()
+        children=[
+            html.Div(
+                id='las-curves',
+                children=generate_curves()
+            )
+        ]
     )
 ])
 
 
 @app.callback(
-    Output('las-curves', 'children'),
-    [Input('graph-size', 'value')]
+    Output('las-table-print', 'children'),
+    [Input('table', 'data')]
 )
-def graph_size(printsize):
-    if(printsize):
-        return generate_curves(2700, 2000, font_size=20)
-    else:
-        return generate_curves()
+def update_table_print(data):
+    colwidths = {
+        'mnemonic': '100px',
+        'descr': '300px',
+        'unit': '25px',
+        'value': '300px'
+    }
+    tables_list = []
+    num_tables = int(len(data)/34) + 1 # 34 rows max per page
+    for i in range(num_tables):
+        table_rows = [] 
+        for j in range(34):
+            if i*34 + j >= len(data):
+                break
+            table_rows.append(html.Tr([
+                html.Td(
+                    data[i*34 + j][key]
+                ) for key in data[0].keys()]))
+        table_rows.insert(0, html.Tr([
+            html.Th(
+                key.title(),
+                style={'width': colwidths[key]}
+            ) for key in data[0].keys()]))
+        tables_list.append(html.Div(className='tablepage', children=html.Table(table_rows)))
+    return tables_list
 
 
 if __name__ == '__main__':
