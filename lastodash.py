@@ -49,7 +49,7 @@ def parse_args():
 if 'DASH_APP_NAME' in os.environ:
     lasfile = open('./alcor1.las')
     debug = True
-else: 
+else:
     lasfile, debug = parse_args()
 
 lf = lasio.read(lasfile)
@@ -58,9 +58,9 @@ lf = lasio.read(lasfile)
 def generate_frontpage():
 
     filename = os.path.basename(lasfile.name)
-    
+
     frontpage = []
-    
+
     # get the header
     frontpage.append(
         html.Div(id='las-header', children=[
@@ -72,29 +72,29 @@ def generate_frontpage():
                         open('assets/logo.png', 'rb').read()
                     ).decode()
                 )
-            ), 
+            ),
 
             html.Div(
                 id='las-header-text',
                 children=[
                     html.H1("LAS Report"),
                     html.Div(id='las-file-info', children=[
-                        html.B(id='las-filename',
+                        html.Span(id='las-filename',
                                children=filename),
-                        html.Span('({0})'.format(lf.version['VERS'].descr
+                        html.Span(' ({0})'.format(lf.version['VERS'].descr
                                                  if 'VERS' in lf.version
                                                  else 'Unknown version'))
                     ])
                 ])
             ])
         )
-    
+
     return frontpage
 
 
 def generate_axis_title(descr, unit):
     title_words = descr.split(' ')
-    
+
     current_line = ''
     lines = []
     for word in title_words:
@@ -103,7 +103,7 @@ def generate_axis_title(descr, unit):
             current_line = ''
         current_line += '{} '.format(word)
     lines.append(current_line)
-                       
+
     title = '<br>'.join(lines)
     title += '<br>({})'.format(unit)
 
@@ -111,7 +111,7 @@ def generate_axis_title(descr, unit):
 
 
 def generate_curves(
-        height=950, width=725,
+        height=950, width=800,
         bg_color='white',
         font_size=10,
         tick_font_size=8,
@@ -123,7 +123,7 @@ def generate_curves(
     cols = list(lf.curves.keys())
 
     plots = []
-    
+
     plots.append(['BTVPVS', 'DGRC'])
     plots.append(list(filter(
         lambda x: x == 'EWXT' or re.search(r'R[0-9][0-9]P', x),
@@ -132,13 +132,13 @@ def generate_curves(
     plots.append(['ALCDLC', 'ALDCLC'])
     plots.append(['TNPS'])
     plots.append(['BTCSS', 'BTCS'])
-    
+
     fig = tools.make_subplots(rows=1, cols=len(plots),
                               shared_yaxes=True,
                               horizontal_spacing=0)
 
     for i in range(len(plots)):
-        for column in plots[i]: 
+        for column in plots[i]:
             fig.append_trace(go.Scatter(
                 x=lf.curves[column].data,
                 y=lf.curves[yvals].data,
@@ -170,7 +170,7 @@ def generate_curves(
         )
     )
 
-    # EWXT on graph 2 
+    # EWXT on graph 2
     fig['layout']['xaxis7'] = dict(
         overlaying='x2',
         anchor='y',
@@ -203,7 +203,7 @@ def generate_curves(
         )
     )
 
-    # y axis title 
+    # y axis title
     fig['layout']['yaxis'].update(
         title=generate_axis_title(
             lf.curves[yvals]['descr'],
@@ -229,7 +229,7 @@ def generate_curves(
                     size=tick_font_size
                 )
             )
-    
+
     fig['layout'].update(
         height=height,
         width=width,
@@ -271,10 +271,16 @@ def generate_table():
         filtering=True,
         row_deletable=True,
         style_cell={
-            'padding': '5px',
+            'padding': '15px',
             'width': 'auto',
-            'textAlign': 'left'
+            'textAlign': 'center'
         },
+        style_cell_conditional=[
+            {
+                'if': {'row_index': 'even'},
+                'backgroundColor': '#f9f9f9'
+            }
+        ],
         columns=[{"name": i, "id": i} for i in df.columns],
         data=df.to_dict("rows")
     )
@@ -290,42 +296,47 @@ app.layout = html.Div([
             ),
         ]
     ),
-    
+
     html.Div(
         id='frontpage',
         className='page',
         children=generate_frontpage()
     ),
 
-    html.Div(
-        className='section-title',
-        children="LAS well"
-    ),
-     
-    html.Div(
-        className='page',
-        children=[
+    html.Div(className='section', children=[
             html.Div(
-                id='las-table',
-                children=generate_table()
+                className='section-title',
+                children="LAS well"
             ),
+
             html.Div(
-                id='las-table-print'
-            )]
-    ), 
-    html.Div(
-        className='section-title',
-        children="LAS curves"
-    ), 
-    html.Div(
-        className='page',
-        children=[
-            html.Div(
-                id='las-curves',
-                children=generate_curves()
+                className='page',
+                children=[
+                    html.Div(
+                        id='las-table',
+                        children=generate_table()
+                    ),
+                    html.Div(
+                        id='las-table-print'
+                    )]
             )
-        ]
-    )
+    ]),
+
+    html.Div(className='section', children=[
+        html.Div(
+            className='section-title',
+            children="LAS curves"
+        ),
+        html.Div(
+            className='page',
+            children=[
+                html.Div(
+                    id='las-curves',
+                    children=generate_curves()
+                )
+            ]
+        )
+    ])
 ])
 
 
@@ -343,7 +354,7 @@ def update_table_print(data):
     tables_list = []
     num_tables = int(len(data)/34) + 1 # 34 rows max per page
     for i in range(num_tables):
-        table_rows = [] 
+        table_rows = []
         for j in range(34):
             if i*34 + j >= len(data):
                 break
@@ -361,5 +372,5 @@ def update_table_print(data):
 
 
 if __name__ == '__main__':
-        
+
     app.run_server(debug=debug)
