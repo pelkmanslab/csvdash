@@ -9,16 +9,15 @@ import pandas
 
 import dash
 from dash.dependencies import Input, Output
+import dash_core_components as dcc
 import dash_html_components as html
-import dash_table as dt
-from dash_table.Format import Format, Align
 
 
 app = dash.Dash(
     __name__,
     external_stylesheets=[
         "https://unpkg.com/normalize.css",
-        "https://unpkg.com/concrete.css",
+        "https://codepen.io/chriddyp/pen/bWLwgP.css",
     ])
 
 app.css.config.serve_locally = True
@@ -55,127 +54,151 @@ if 'DASH_APP_NAME' in os.environ:
 else:
     csvfile, debug = parse_args()
 
-def format_function_names(fns):
-    fns = [fn for fn in fns.split(';') if fn.strip()]
-    # return html.Ul(children=[
-    #     html.Li(fn) for fn in fns if fn
-    # ])
-    return ' // '.join(fns)
+dataset = pandas.read_csv(csvfile)
 
+dataset_selector = dataset['Dataset'].notna()
+gene_selector = dataset['Gene'].notna()
+functions_selector = dataset['Function(s)'].notna()
 
-def init_table():
-    df = pandas.read_csv(csvfile)
-    df[['Function(s)']] = df['Function(s)'].apply(format_function_names)
-
-    return dt.DataTable(
-        id='table',
-        data=df.to_dict("rows"),
-        columns=[
-            # Dataset
-            {
-                'id': 'Dataset',
-                'name': 'Dataset',
-                'type': 'text',
-            },
-            # Gene
-            {
-                'id': 'Gene',
-                'name': 'Gene',
-                'type': 'text',
-            },
-            # Function(s)
-            {
-                'id': 'Function(s)',
-                'name': 'Function(s)',
-                'type': 'text',
-            },
-            # Score
-            {
-                'id': 'Score',
-                'name': 'Score',
-                'type': 'numeric',
-                'format': Format(precision=5, align=Align.left),
-            },
-        ],
-        # table UI
-        sort_action='native',
-        filter_action='native',
-        page_action='native',
-        # table style
-        style_cell={
-            'padding': '15px',
-            'width': 'auto',
-            'textAlign': 'center'
-        },
-        style_header={
-            'backgroundColor': 'rgb(200, 200, 200)',
-            'fontWeight': 'bold'
-        },
-        style_cell_conditional=[
-            {
-                'if': {'column_id': 'Function(s)'},
-                'textAlign': 'left',
-                'whiteSpace': 'pre-line',
-            },
-            {
-                'if': {'column_id': 'Score'},
-                'textAlign': 'left',
-            },
-        ],
-        style_data_conditional=[
-            {
-                'if': {'row_index': 'odd'},
-                'backgroundColor': 'rgb(230, 230, 230)'
-            }
-        ],
+def table():
+    selected = dataset.loc[dataset_selector & gene_selector & functions_selector]
+    header = [
+        html.Thead(children=[
+            html.Tr(children=[
+                html.Th(name.title())
+                for name in selected.columns
+            ])
+        ])
+    ]
+    rows = []
+    for n, row in selected.iterrows():
+        row_classes = [
+            "row-{:d}".format(n+1),
+            ("row-odd" if (n % 2) else "row-even"),
+        ]
+        cols = []
+        for k, colname in enumerate(selected.columns):
+            col_classes = row_classes[:] + [
+                "col-{:d}".format(k),
+            ]
+            if k == 2:
+                # format `Function(s)`
+                fns = [fn for fn in row[k].split(';') if fn.strip()]
+                content = html.Ul(children=[
+                    html.Li(fn) for fn in fns if fn.strip()
+                ])
+            elif k == 3:
+                content = "{:2.5f}".format(row[k])
+            else:
+                # convert any other column to string
+                content = str(row[k])
+            cols.append(html.Td(content, className=' '.join(col_classes)))
+        rows.append(
+            html.Tr(children=cols, className=' '.join(row_classes))
+        )
+    return html.Table(
+        id='csv-table',
+        className="table",
+        children=(header + rows),
     )
 
 
+def selector(colname, default=None, **kwargs):
+    values = list(dataset[colname].unique())
+    assert len(values) > 0
+    if default is None:
+        default = 'any'
+    return dcc.Dropdown(
+        options=[{
+            'label': f"Any {colname.lower()}",
+            'value':'any',
+        }] + [
+            {'label':val, 'value':val} for val in values
+        ],
+        value=default,
+        **kwargs
+    )
+
 app.layout = html.Div([
-    # html.Div(
-    #     id='controls',
-    #     children=[
-    #        html.Button(
-    #             "Print",
-    #             id='print-button'
-    #         ),
-    #     ]
-    # ),
-
     html.Div(
-        id='csv-header',
+        id='header',
+        className="container",
         children=[
-
-            # html.Img(
-            #     id='logo',
-            #     src='data:image/png;base64,{}'.format(
-            #         base64.b64encode(
-            #             open('assets/logo.png', 'rb').read()
-            #         ).decode()
-            #     )
-            # ),
-
             html.Div(
-                id='csv-header-text',
+                id='title',
+                className="title",
                 children=[
                     html.H1("CSV Report"),
-            ]),
-
-            html.P("""
-            Type text in the empty boxes under column names to search / limit
-            display to the matching values only.
-            """),
-
+                ],
+            ),
+            html.Div(
+                id='intro',
+                className="section",
+                children=[
+                    html.P("""
+                    Limit/search dataset display using the following controls.
+                    """),
+                    #
+                    html.Label("Dataset:"),
+                    selector('Dataset', id='sel-dataset'),
+                    #
+                    html.Label("Gene:"),
+                    selector('Gene', id='sel-gene'),
+                    #
+                    html.Label('Limit to functions containing this substring (press ENTER to filter):'),
+                    dcc.Input(
+                        type='text',
+                        placeholder="E.g.: supercalifragilisticexpialidocious",
+                        spellCheck='false',
+                        size='80',
+                        id='sel-functions',
+                    ),
+                ],
+            ),
+        ],
+    ),
+    html.Div(
+        id='report',
+        className="container section",
+        children=[
             html.P("""
             Click on the small arrows besides column names to sort by that column.
             """),
-]),
-
-    html.Div(
-        id='csv-table',
-        children=init_table()
+            html.Div(
+                id='table-container',
+                children=[table()],
+            ),
+        ],
     ),
 ])
+
+@app.callback(
+    Output('table-container', 'children'),
+    [
+        Input('sel-dataset', 'value'),
+        Input('sel-gene', 'value'),
+        Input('sel-functions', 'value'),
+        Input('sel-functions', 'n_submit'),
+    ]
+)
+def select(dataset_name, gene_name, function_substr, enter_pressed):
+    global dataset_selector, gene_selector, functions_selector
+    if dataset_name == 'any':
+        dataset_selector = dataset['Dataset'].notna()
+    else:
+        dataset_selector = (dataset['Dataset'] == dataset_name)
+    if gene_name == 'any':
+        gene_selector = dataset['Gene'].notna()
+    else:
+        gene_selector = (dataset['Gene'] == gene_name)
+    if enter_pressed and function_substr is not None:
+        function_substr = function_substr.strip()
+        if function_substr:
+            functions_selector = dataset['Function(s)'].str.contains(function_substr)
+        else:
+            functions_selector = dataset['Function(s)'].notna()
+    return [table()]
+
 
 if __name__ == '__main__':
     app.run_server(debug=debug)

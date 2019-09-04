@@ -1,5 +1,4 @@
 dash
 dash-html-components
-dash-table
 pandas
 gunicorn
