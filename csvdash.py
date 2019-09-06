@@ -49,7 +49,7 @@ def parse_args():
 
 
 if 'DASH_APP_NAME' in os.environ:
-    csvfile = open('./dataset.csv')
+    csvfile = './dataset.csv'
     debug = True
 else:
     csvfile, debug = parse_args()
@@ -61,15 +61,29 @@ gene_selector = dataset['Gene'].notna()
 functions_selector = dataset['Function(s)'].notna()
 
 def table():
+    return html.Table(
+        id='table',
+        className="table",
+        children=[
+            html.Thead(
+                id='table-header',
+                children=[
+                    html.Tr(children=[
+                        html.Th(name.title())
+                        for name in dataset.columns
+                    ])
+                ]
+            ),
+            html.Tbody(
+                id='table-body',
+                children=table_rows(),
+            )
+        ],
+    )
+
+
+def table_rows():
     selected = dataset.loc[dataset_selector & gene_selector & functions_selector]
-    header = [
-        html.Thead(children=[
-            html.Tr(children=[
-                html.Th(name.title())
-                for name in selected.columns
-            ])
-        ])
-    ]
     rows = []
     for n, row in selected.iterrows():
         row_classes = [
@@ -96,11 +110,7 @@ def table():
         rows.append(
             html.Tr(children=cols, className=' '.join(row_classes))
         )
-    return html.Table(
-        id='csv-table',
-        className="table",
-        children=(header + rows),
-    )
+    return rows
 
 
 def selector(colname, default=None, **kwargs):
@@ -173,7 +183,7 @@ app.layout = html.Div([
 ])
 
 @app.callback(
-    Output('table-container', 'children'),
+    Output('table-body', 'children'),
     [
         Input('sel-dataset', 'value'),
         Input('sel-gene', 'value'),
@@ -197,7 +207,7 @@ def select(dataset_name, gene_name, function_substr, enter_pressed):
             functions_selector = dataset['Function(s)'].str.contains(function_substr)
         else:
             functions_selector = dataset['Function(s)'].notna()
-    return [table()]
+    return table_rows()
 
 
 if __name__ == '__main__':
