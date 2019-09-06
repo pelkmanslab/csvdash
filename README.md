@@ -1,48 +1,42 @@
-# LAStoDash
+# HebaDash
 
-'LAStoDash` is sample [Dash](https://plot.ly/products/dash) project that takes a
-[Log ASCII Standard (LAS) file](http://www.cwls.org/las/) and builds a web app
-to view its content and ready for printing.
+'LAStoDash` is simple [Dash](https://plot.ly/products/dash)
+application that takes a CSV file with 4 columns and shows the content
+in a web page, allowing simple search/filtering.
+
+The CSV dataset *must* have the following format (example):
+
+```csv
+Dataset,Gene,Function(s),Score
+MCF7,DDR1,early endosome;,0.142973749
+MCF7,DDR1,endopeptidase inhibitor activity;negative regulation of endopeptidase activity;peptidase inhibitor activity;peptidase regulator ... <Preview truncated at 128 characters>,0.207076131
+MCF7,DDR1,angiogenesis;blood vessel morphogenesis;,0.223826555
+HCT116,GDI1,positive regulation of angiogenesis;positive regulation of vasculature development;,0.090687684
+HCT116,GDI1,protein polyubiquitination;,0.090705461
+```
+
+Requires Python 3.6+, won't run in earlier versions of Python.
+
 
 ## Installation
 
 ```
-$ git clone https://github.com/n-riesco/lastodash.git
-$ cd lastodash
+$ git clone https://github.com/pelkmanslab/hebadash.git
+$ cd hebadash
 $ pip3 install -r requirements.txt
 ```
 
 ## Usage
 
 ```
-$ ./lastodash.py -h
-usage: lastodash.py [-h] [--debug] lasfile
-
-Launch a Dash app to view a LAS log.
-
-positional arguments:
-  lasfile      Log ASCII Standard (LAS) file
-
-optional arguments:
-  -h, --help   show this help message and exit
-  --debug, -d  enable debug mode
-```
-
-## Example
-
-```
-$ ./lastodash.py alcor1.las 
-Header section Parameter regexp=~P was not found.
- * Serving Flask app "lastodash" (lazy loading)
+$ ./hebadash.py --debug dataset.csv
+Running on http://127.0.0.1:8050/
+Debugger PIN: 187-833-118
+ * Serving Flask app "hebadash" (lazy loading)
  * Environment: production
-   WARNING: Do not use the development server in a production environment.
+   WARNING: This is a development server. Do not use it in a production deployment.
    Use a production WSGI server instead.
- * Debug mode: off
- * Running on http://127.0.0.1:8050/ (Press CTRL+C to quit)
+ * Debug mode: on
+Running on http://127.0.0.1:8050/
+Debugger PIN: 909-647-004
 ```
-
-And open http://127.0.0.1:8050/ to view the LAS file:
-
-![Screencast](alcor1.gif)
-
-See [here](alcor1.pdf) the report printed in PDF format.
