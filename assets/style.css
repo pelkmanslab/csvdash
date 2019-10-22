@@ -1,3 +1,19 @@
+
+
+tr {
+       padding-left: 10px;
+}
+
+
+body {
+       margin: 0px 0px 0px 0px;
+       width: 100%;
+}
+
+h1 {
+      font-family: "Open Sans", "HelveticaNeue", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-style: italic;
+    }
 .row-odd {
     background-color: rgb(230, 230, 230);
 }
@@ -18,4 +34,15 @@
 
 div.section {
     margin-top: 2em;
+}
+
+.contents {
+  position: relative;
+  padding:20px}
+}
+.footer {
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  text-align: center;
 }
