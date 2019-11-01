@@ -54,6 +54,9 @@ def table():
 
 def table_rows():
     selected = dataset.loc[dataset_selector & gene_selector & functions_selector]
+    # only keep this `max_rows`
+    if len(selected) > max_rows:
+        selected = selected.loc[0:(max_rows-1)]
     rows = []
     for n, row in selected.iterrows():
         row_classes = [
@@ -157,10 +160,11 @@ layout = html.Div(
         Input('sel-gene', 'value'),
         Input('sel-functions', 'value'),
         Input('sel-functions', 'n_submit'),
+        Input('num-rows', 'value'),
     ]
 )
-def select(dataset_name, gene_name, function_substr, enter_pressed):
-    global dataset_selector, gene_selector, functions_selector
+def select(dataset_name, gene_name, function_substr, enter_pressed, num_rows):
+    global dataset_selector, gene_selector, functions_selector, max_rows
 
     if dataset_name == 'any':
         dataset_selector = dataset['Dataset'].notnull()
@@ -176,4 +180,6 @@ def select(dataset_name, gene_name, function_substr, enter_pressed):
             functions_selector = dataset['Function(s)'].str.contains(function_substr)
         else:
             functions_selector = dataset['Function(s)'].notnull()
+    if num_rows is not None:
+        max_rows = num_rows
     return table_rows()
