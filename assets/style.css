@@ -1,7 +1,7 @@
 
 
 tr {
-       padding-left: 10px;
+       padding-left: 30px;
 }
 
 
@@ -37,12 +37,17 @@ div.section {
 }
 
 .contents {
-  position: relative;
-  padding:20px}
+  padding-left: 50px;
+  height: 100%;
+  float: left;
+  width: 100%;
+  padding-bottom: 20px;
 }
+
+  
 .footer {
   left: 0;
   bottom: 0;
   width: 100%;
-  text-align: center;
-}
+  text-align:center;
+ } 

@@ -21,7 +21,6 @@ import dash
 from dash.dependencies import Input, Output
 import dash_core_components as dcc
 import dash_html_components as html
-
 from app import app
 #
 #app = dash.Dash(
@@ -212,8 +211,10 @@ layout = html.Div(
 #            """),
             html.Div(
                 id='table-container',
-                children=[table()],
-            ),
+                children=[table(),
+                
+                #children=[dash_table.DataTable()],
+            ]),
 #        ]
 #    ),
     ]),
@@ -238,7 +239,8 @@ def select(dataset_name, gene_name, function_substr, enter_pressed):
         dataset_selector = dataset['Dataset'].notnull()
     else:
         dataset_selector = (dataset['Dataset'] == dataset_name)
-    if gene_name == 'any' or gene_name is None:
+#    if gene_name == 'any' or gene_name is None:
+    if gene_name == 'any':
         gene_selector = dataset['Gene'].notnull()
     else:
         gene_selector = (dataset['Gene'] == gene_name)

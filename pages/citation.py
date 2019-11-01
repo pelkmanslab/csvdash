@@ -12,23 +12,24 @@ from dash.dependencies import Input, Output
 
 from app import app
 
-layout = html.Div([
-
-html.H2('Citation'),
-
-html.P([
-'If you have used data available through KDML-db.org in your work, please cite the following publication:'
-]),
-
-html.P(['KDML: a machine-learning framework for inference of multi-scale gene functions from genetic perturbation screens'
-]),
-
-html.P('Heba Sailem, Jens Rittscher, and Lucas Pelkmans'
-),
-
-html.P([
-'bioRxiv 761106, doi: https://doi.org/10.1101/761106'
-]),
+layout = html.Div(
+    className="contents",
+    children=[
+    html.H2('Citation'),
+    
+    html.P([
+    'If you have used data available through KDML-db.org in your work, please cite the following publication:'
+    ]),
+    
+    html.P(['KDML: a machine-learning framework for inference of multi-scale gene functions from genetic perturbation screens'
+    ]),
+    
+    html.P('Heba Sailem, Jens Rittscher, and Lucas Pelkmans'
+    ),
+    
+    html.P([
+    'bioRxiv 761106, doi: https://doi.org/10.1101/761106'
+    ]),
 ])
 
 

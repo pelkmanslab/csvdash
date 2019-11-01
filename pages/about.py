@@ -12,8 +12,9 @@ from dash.dependencies import Input, Output
 
 from app import app
 
-layout = html.Div([
-        
+layout = html.Div(
+    className="contents",        
+    children=[
     html.H2('About KDML'),
     
     html.P([
