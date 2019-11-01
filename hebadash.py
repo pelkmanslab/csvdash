@@ -24,15 +24,17 @@ app.layout = html.Div([
               [Input('url', 'pathname')])
 def display_page(pathname):
     if pathname == '/':
-        return header.layout, index.layout, footer.layout
+        content = index.layout
     elif pathname == '/datasets':
-        return header.layout, datasets.layout, footer.layout
+        content = datasets.layout
     elif pathname == '/citation':
-        return header.layout, citation.layout, footer.layout
+        content = citation.layout
     elif pathname == '/about':
-        return header.layout, about.layout, footer.layout
+        content = about.layout
     else:
         return '404'
+    return header.layout, content, footer.layout
+
 
 if __name__ == '__main__':
     app.run_server(debug=True)
