@@ -10,6 +10,7 @@ import base64
 import os
 import re
 
+import numpy as np
 import pandas
 
 import dash
@@ -22,7 +23,12 @@ from app import app
 DEFAULT_DATASET_FILE = 'dataset.csv'
 
 
-dataset = pandas.read_csv(DEFAULT_DATASET_FILE)
+dataset = pandas.read_csv(DEFAULT_DATASET_FILE, dtype={
+    'Dataset': str,
+    'Gene': str,
+    'Function': str,
+    'Confidence': np.float,
+})
 
 dataset_selector = dataset['Dataset'].notnull()
 gene_selector = dataset['Gene'].notnull()
@@ -266,9 +272,9 @@ def select(dataset_name, gene_name, function_substr, enter_pressed,
     if enter_pressed and function_substr is not None:
         function_substr = function_substr.strip()
         if function_substr:
-            functions_selector = dataset['Function(s)'].str.contains(function_substr)
+            functions_selector = dataset['Function'].str.contains(function_substr)
         else:
-            functions_selector = dataset['Function(s)'].notnull()
+            functions_selector = dataset['Function'].notnull()
     if new_max_rows is not None:
         max_rows = new_max_rows
     if page is not None:
