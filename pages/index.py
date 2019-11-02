@@ -26,8 +26,8 @@ dataset = pandas.read_csv(DEFAULT_DATASET_FILE)
 
 dataset_selector = dataset['Dataset'].notnull()
 gene_selector = dataset['Gene'].notnull()
-functions_selector = dataset['Function(s)'].notnull()
-max_rows = 2
+functions_selector = dataset['Function'].notnull()
+max_rows = 20
 num_pages = sum(dataset_selector & gene_selector & functions_selector) // max_rows
 current_page = 0
 
