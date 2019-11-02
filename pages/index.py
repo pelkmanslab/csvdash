@@ -27,7 +27,9 @@ dataset = pandas.read_csv(DEFAULT_DATASET_FILE)
 dataset_selector = dataset['Dataset'].notnull()
 gene_selector = dataset['Gene'].notnull()
 functions_selector = dataset['Function(s)'].notnull()
-max_rows = 10
+max_rows = 2
+num_pages = sum(dataset_selector & gene_selector & functions_selector) // max_rows
+current_page = 0
 
 
 def table():
@@ -54,9 +56,11 @@ def table():
 
 def table_rows():
     selected = dataset.loc[dataset_selector & gene_selector & functions_selector]
-    # only keep this `max_rows`
-    if len(selected) > max_rows:
-        selected = selected.loc[0:(max_rows-1)]
+    # paginate
+    start = max_rows*current_page
+    end = start + max_rows
+    selected = selected.iloc[start:end]
+    # build table row by row
     rows = []
     for n, row in selected.iterrows():
         row_classes = [
@@ -86,6 +90,57 @@ def table_rows():
     return rows
 
 
+def pagination():
+    global num_pages, current_page
+    return html.Div(
+        id='pagination',
+        className="pagination",
+        style={'text-align': 'left'},
+        children=[
+            html.Div(
+                [
+                    html.Label('Go to page:'),
+                    html.Button('First', id='first', className='first'),
+                    dcc.Input(
+                        id='page',
+                        type='number',
+                        value=(current_page+1),
+                        min=1,
+                        #max=num_pages,
+                        #debounce=True,
+                        style={'width': '5em'},
+                    ),
+                    html.Button('Last', id='last', className='last'),
+                ],
+                style={
+                    'clear': 'left',
+                    'float': 'left',
+                    'margin-right': '1em',
+                },
+            ),
+            #
+            html.Div(
+                [
+                    html.Label('Max rows per page:'),
+                    dcc.Input(
+                        id='num-rows',
+                        type='number', min=1,
+                        debounce=True,
+                        placeholder="E.g.: 100",
+                        spellCheck='false',
+                        size='10',
+                    ),
+                ],
+                style={
+                    'clear': 'right',
+                    'float': 'left',
+                    'margin-right': '1em',
+                },
+            ),
+        ],
+    )
+
+
 def selector(colname, default=None, **kwargs):
     values = list(dataset[colname].unique())
     assert len(values) > 0
@@ -112,34 +167,52 @@ layout = html.Div(
             children=[
                 html.P("Use the following input fields to search specific records in the dataset."
                        " The display will update as soon as a value is entered or selected."),
-                html.Label("Gene:"),
-                dcc.Input(
-                    type='text',
-                    placeholder="E.g.: DDR1",
-                    spellCheck='false',
-                    size='20',
-                    id='sel-gene',
+                html.Div(
+                    [
+                        html.Label("Gene:"),
+                        dcc.Input(
+                            id='sel-gene',
+                            type='text',
+                            placeholder="E.g.: DDR1",
+                            spellCheck='false',
+                            size='20',
+                        ),
+                    ],
+                    style={
+                        'clear': 'left',
+                        'float': 'left',
+                        'margin-right': '1em',
+                    },
                 ),
                 #
-                html.Label("Dataset:"),
-                selector('Dataset', id='sel-dataset', style={'width': '12em'}),
-                #
-                html.Label('Keyword(s):'),
-                dcc.Input(
-                    type='text',
-                    placeholder="E.g.: cell cycle",
-                    spellCheck='false',
-                    size='20',
-                    id='sel-functions',
+                html.Div(
+                    [
+                        html.Label("Dataset:"),
+                        selector('Dataset', id='sel-dataset', style={'width': '12em'}),
+                    ],
+                    style={
+                        'float': 'left',
+                        'margin-right': '1em',
+                    },
                 ),
                 #
-                html.Label('Max rows per page:'),
-                dcc.Input(
-                    type='number', min=1,
-                    placeholder="E.g.: 100",
-                    spellCheck='false',
-                    size='10',
-                    id='num-rows',
+                html.Div(
+                    [
+                        html.Label('Keyword(s):'),
+                        dcc.Input(
+                            id='sel-functions',
+                            type='text',
+                            placeholder="E.g.: cell cycle",
+                            spellCheck='false',
+                            size='20',
+                            debounce=True,
+                        ),
+                    ],
+                    style={
+                        'clear': 'right',
+                        'float': 'left',
+                        'margin-right': '1em',
+                    },
                 ),
             ],
         ),
@@ -147,24 +220,40 @@ layout = html.Div(
             id='table-container',
             children=[
                 table(),
-            ]
+                html.Hr(),
+                pagination(),
+            ],
+            style={
+                'clear': 'both',
+            },
         ),
     ],
 )
 
 
+goto_first_clicked_last = 0
+goto_last_clicked_last = 0
+
 @app.callback(
-    Output('table-body', 'children'),
+    [
+        Output('table-body', 'children')
+    ],
     [
         Input('sel-dataset', 'value'),
         Input('sel-gene', 'value'),
         Input('sel-functions', 'value'),
         Input('sel-functions', 'n_submit'),
+        # pagination
         Input('num-rows', 'value'),
+        Input('page', 'value'),
+        Input('first', 'n_clicks_timestamp'),
+        Input('last', 'n_clicks_timestamp'),
     ]
 )
-def select(dataset_name, gene_name, function_substr, enter_pressed, num_rows):
-    global dataset_selector, gene_selector, functions_selector, max_rows
+def select(dataset_name, gene_name, function_substr, enter_pressed,
+           new_max_rows, page, goto_first_clicked, goto_last_clicked):
+    global dataset_selector, gene_selector, functions_selector, max_rows, \
+        current_page, num_pages, goto_first_clicked_last, goto_last_clicked_last
 
     if dataset_name == 'any':
         dataset_selector = dataset['Dataset'].notnull()
@@ -180,6 +269,19 @@ def select(dataset_name, gene_name, function_substr, enter_pressed, num_rows):
             functions_selector = dataset['Function(s)'].str.contains(function_substr)
         else:
             functions_selector = dataset['Function(s)'].notnull()
-    if num_rows is not None:
-        max_rows = num_rows
-    return table_rows()
+    if new_max_rows is not None:
+        max_rows = new_max_rows
+    if page is not None:
+        current_page = page-1
+    num_rows = sum(dataset_selector & gene_selector & functions_selector)
+    num_pages = num_rows // max_rows
+    if num_pages <= current_page:
+        current_page = num_pages-1
+    if goto_first_clicked is not None and goto_first_clicked > goto_first_clicked_last:
+        goto_first_clicked_last = goto_first_clicked
+        current_page = 0
+    if goto_last_clicked is not None and goto_last_clicked > goto_last_clicked_last:
+        goto_last_clicked_last = goto_last_clicked
+        current_page = num_pages-1
+    # need to return a tuple even if it's just 1 element
+    return (table_rows(),)

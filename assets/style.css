@@ -1,5 +1,3 @@
-
-
 tr {
        padding-left: 30px;
 }
@@ -19,17 +17,21 @@ h1 {
 }
 
 .col-1 { /* Dataset */
+    width: 8em;
 }
 
 .col-2 { /* Gene */
+    width: 18em;
 }
 
 .col-3 { /* Function(s) */
     text-align: center;
+    width: 60em;
 }
 
 .col-score { /* Score */
     text-align: center;
+    width: 8em;
 }
 
 div.section {
@@ -44,10 +46,10 @@ div.section {
   padding-bottom: 20px;
 }
 
-  
+
 .footer {
   left: 0;
   bottom: 0;
   width: 100%;
   text-align:center;
- } 
+}
