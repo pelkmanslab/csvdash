@@ -33,6 +33,10 @@ dataset = pandas.read_csv(DEFAULT_DATASET_FILE, dtype={
 dataset_selector = dataset['Dataset'].notnull()
 gene_selector = dataset['Gene'].notnull()
 functions_selector = dataset['Function'].notnull()
+
+sort_by = 'Confidence'
+sort_ascending = False
+
 max_rows = 20
 num_pages = sum(dataset_selector & gene_selector & functions_selector) // max_rows
 current_page = 0
@@ -62,6 +66,8 @@ def table():
 
 def table_rows():
     selected = dataset.loc[dataset_selector & gene_selector & functions_selector]
+    # sort
+    selected.sort_values(by=sort_by, ascending=sort_ascending, inplace=True)
     # paginate
     start = max_rows*current_page
     end = start + max_rows
@@ -215,6 +221,45 @@ layout = html.Div(
                         ),
                     ],
                     style={
+                        'float': 'left',
+                        'margin-right': '1em',
+                    },
+                ),
+                #
+                html.Div(
+                    [
+                        html.Label("Sort by:"),
+                        dcc.Dropdown(
+                            id='sort-by',
+                            options=[{'label':col, 'value':col} for col in dataset.columns],
+                            value='Confidence',
+                            style={
+                                'width': '10em',
+                            },
+                        ),
+                    ],
+                    style={
+                        'float': 'left',
+                        'margin-right': '1em',
+                    },
+                ),
+                #
+                html.Div(
+                    [
+                        html.Label("Direction:"),
+                        dcc.Dropdown(
+                            id='sort-asc',
+                            options=[
+                                {'label': 'Ascending', 'value': '1'},
+                                {'label': 'Descending', 'value': '0'},
+                            ],
+                            value='Descending',
+                            style={
+                                'width': '8em',
+                            },
+                        ),
+                    ],
+                    style={
                         'clear': 'right',
                         'float': 'left',
                         'margin-right': '1em',
@@ -249,6 +294,9 @@ goto_last_clicked_last = 0
         Input('sel-gene', 'value'),
         Input('sel-functions', 'value'),
         Input('sel-functions', 'n_submit'),
+        # sorting
+        Input('sort-by', 'value'),
+        Input('sort-asc', 'value'),
         # pagination
         Input('num-rows', 'value'),
         Input('page', 'value'),
@@ -257,9 +305,12 @@ goto_last_clicked_last = 0
     ]
 )
 def select(dataset_name, gene_name, function_substr, enter_pressed,
+           new_sort_by, new_sort_ascending,
            new_max_rows, page, goto_first_clicked, goto_last_clicked):
-    global dataset_selector, gene_selector, functions_selector, max_rows, \
-        current_page, num_pages, goto_first_clicked_last, goto_last_clicked_last
+    global dataset_selector, gene_selector, functions_selector, \
+        sort_by, sort_ascending, \
+        max_rows, current_page, num_pages, \
+        goto_first_clicked_last, goto_last_clicked_last
 
     if dataset_name == 'any':
         dataset_selector = dataset['Dataset'].notnull()
@@ -275,6 +326,12 @@ def select(dataset_name, gene_name, function_substr, enter_pressed,
             functions_selector = dataset['Function'].str.contains(function_substr)
         else:
             functions_selector = dataset['Function'].notnull()
+
+    if new_sort_by is not None:
+        sort_by = new_sort_by
+    if new_sort_ascending is not None:
+        sort_ascending = (new_sort_ascending == 'Ascending')
+
     if new_max_rows is not None:
         max_rows = new_max_rows
     if page is not None:
