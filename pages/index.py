@@ -67,7 +67,7 @@ def table():
 def table_rows():
     selected = dataset.loc[dataset_selector & gene_selector & functions_selector]
     # sort
-    selected.sort_values(by=sort_by, ascending=sort_ascending, inplace=True)
+    selected = selected.sort_values(by=sort_by, ascending=sort_ascending, inplace=False)
     # paginate
     start = max_rows*current_page
     end = start + max_rows
