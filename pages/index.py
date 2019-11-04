@@ -23,12 +23,37 @@ from app import app
 DEFAULT_DATASET_FILE = 'dataset.csv'
 
 
-dataset = pandas.read_csv(DEFAULT_DATASET_FILE, dtype={
-    'Dataset': str,
-    'Gene': str,
-    'Function': str,
-    'Confidence': np.float,
-})
+def read_dataset(filename=DEFAULT_DATASET_FILE):
+    """
+    Read the given CSV file into a DataFrame.
+
+    Add lowercased versions of all string columns,
+    so that we can use them for case-insensitive search.
+    """
+    df = pandas.read_csv(DEFAULT_DATASET_FILE, dtype={
+        'Dataset': str,
+        'Gene': str,
+        'Function': str,
+        'Confidence': np.float,
+    })
+    # add lowercased columns for case-insensite search
+    def lowercase(s):
+        try:
+            return s.lower()
+        except:
+            return s
+    df['_gene'] = df['Gene'].apply(lowercase)
+    df['_function'] = df['Function'].apply(lowercase)
+    # all done
+    return df
+
+
+dataset = read_dataset()
+display_cols = [
+    colname
+    for colname in dataset.columns
+    if not colname.startswith('_')
+]
 
 dataset_selector = dataset['Dataset'].notnull()
 gene_selector = dataset['Gene'].notnull()
@@ -52,7 +77,7 @@ def table():
                 children=[
                     html.Tr(children=[
                         html.Th(name.title())
-                        for name in dataset.columns
+                        for name in display_cols
                     ])
                 ]
             ),
@@ -81,7 +106,7 @@ def table_rows():
             ("row-odd" if (n % 2) else "row-even"),
         ]
         cols = []
-        for k, colname in enumerate(selected.columns):
+        for k, colname in enumerate(display_cols):
             col_classes = row_classes[:] + [
                 "col-{:d}".format(k),
             ]
@@ -320,11 +345,11 @@ def select(dataset_name, gene_name, function_substr, enter_pressed,
     if gene_name == 'any' or gene_name is None:
         gene_selector = dataset['Gene'].notnull()
     else:
-        gene_selector = (dataset['Gene'] == gene_name)
+        gene_selector = (dataset['_gene'] == gene_name.lower())
     if enter_pressed and function_substr is not None:
         function_substr = function_substr.strip()
         if function_substr:
-            functions_selector = dataset['Function'].str.contains(function_substr)
+            functions_selector = dataset['_function'].str.contains(function_substr.lower())
         else:
             functions_selector = dataset['Function'].notnull()
 
