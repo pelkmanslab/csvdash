@@ -135,7 +135,7 @@ def pagination():
             #
             html.Div(
                 [
-                    html.Label('Max rows per page:'),
+                    html.Label('Max entries per page:'),
                     dcc.Input(
                         id='num-rows',
                         type='number', min=1,
