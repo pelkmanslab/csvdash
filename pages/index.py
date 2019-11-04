@@ -74,7 +74,8 @@ def table_rows():
     selected = selected.iloc[start:end]
     # build table row by row
     rows = []
-    for n, row in selected.iterrows():
+    n = 0
+    for index, row in selected.iterrows():
         row_classes = [
             "row-{:d}".format(n+1),
             ("row-odd" if (n % 2) else "row-even"),
@@ -99,6 +100,7 @@ def table_rows():
         rows.append(
             html.Tr(children=cols, className=' '.join(row_classes))
         )
+        n += 1
     return rows
 
 
