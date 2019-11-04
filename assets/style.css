@@ -11,9 +11,16 @@ body {
 h1 {
       font-family: "Open Sans", "HelveticaNeue", "Helvetica Neue", Helvetica, Arial, sans-serif;
       font-style: italic;
-    }
-.row-odd {
+}
+
+tr.row-odd {
     background-color: rgb(230, 230, 230);
+}
+
+tr:hover,
+tr.row-odd:hover
+{
+    background-color: rgb(250,235,215);
 }
 
 .col-1 { /* Dataset */
