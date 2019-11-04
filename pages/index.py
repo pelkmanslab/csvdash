@@ -246,14 +246,13 @@ layout = html.Div(
                 #
                 html.Div(
                     [
-                        html.Label("Direction:"),
-                        dcc.Dropdown(
+                        dcc.RadioItems(
                             id='sort-asc',
                             options=[
                                 {'label': 'Ascending', 'value': '1'},
                                 {'label': 'Descending', 'value': '0'},
                             ],
-                            value='Descending',
+                            value='0',
                             style={
                                 'width': '8em',
                             },
@@ -330,7 +329,7 @@ def select(dataset_name, gene_name, function_substr, enter_pressed,
     if new_sort_by is not None:
         sort_by = new_sort_by
     if new_sort_ascending is not None:
-        sort_ascending = (new_sort_ascending == 'Ascending')
+        sort_ascending = (new_sort_ascending == '1')
 
     if new_max_rows is not None:
         max_rows = new_max_rows
