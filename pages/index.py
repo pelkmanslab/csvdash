@@ -258,7 +258,7 @@ layout = html.Div(
                         html.Label("Sort by:"),
                         dcc.Dropdown(
                             id='sort-by',
-                            options=[{'label':col, 'value':col} for col in dataset.columns],
+                            options=[{'label':col, 'value':col} for col in display_cols],
                             value='Confidence',
                             style={
                                 'width': '10em',
