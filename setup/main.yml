@@ -1,0 +1,127 @@
+---
+#
+# Install the `hebadash` software on a Ubuntu 18.04 machine.
+# This Ansible playbook will install NginX to listen on the
+# usual HTTP port (TCP port 80) and forward requests to a
+# uWSGI container running the Plotly Dash Python code.
+#
+# Run this playbook with:
+#
+#         ansible-playbook -i hosts.ini --become -v main.yml
+#
+
+- name: Install HebaDash
+  hosts: all
+
+  tasks:
+    - name: Install Ansible `apt` module dependencies
+      # the `apt` module depends on `python-apt` to do package-level work,
+      # so we need to resort to a raw invocation of `apt-get`
+      command: |
+        apt-get install -y python-apt
+      args:
+        creates: '/usr/share/doc/python-apt'
+        # we know about the `apt:` module but cannot use it here,
+        # so suppress warning
+        warn: no
+      become: yes
+
+    - name: Ensure the APT package cache is updated
+      apt:
+        update_cache: yes
+        cache_valid_time: 0
+
+    - name: Install prerequisite software
+      package:
+        name:
+          - nginx
+          - uwsgi
+          - uwsgi-plugin-python3
+          # needed to build the Python venv and some common general
+          # packages (e.g. `cffi`, `paramiko`)
+          - libffi-dev
+          - libssl-dev
+          - python-dev
+          - python-pip
+          - python-virtualenv
+          - python-wheel
+          - virtualenv
+          - virtualenvwrapper
+
+    - name: Create virtualenv for HebaDash
+      pip:
+        name: 'pip'
+        virtualenv: '/opt/hebadash'
+        virtualenv_python: python3
+
+    - name: Check out HebaDash sources
+      git:
+        dest: '/opt/hebadash/src'
+        repo: 'https://github.com/pelkmanslab/hebadash'
+        version: '{{ version|default("master") }}'
+        # do not overwrite local modifications
+        force: no
+        update: no
+
+    - name: Install HebaDash Python requirements
+      pip:
+        virtualenv: '/opt/hebadash'
+        requirements: '/opt/hebadash/src/requirements.txt'
+        state: present
+
+    # - name: Install HebaDash code
+    #   pip:
+    #     virtualenv: '/opt/hebadash'
+    #     name: '/opt/hebadash/src'
+    #     state: present
+    #     editable: yes
+
+    - name: Deploy HebaDash dataset
+      copy:
+        src: '../dataset.csv'
+        dest: '/opt/hebadash/src/dataset.csv'
+
+    - name: Deploy HebaDash configuration files
+      copy:
+        dest: '{{ item.dest }}'
+        src:  '{{ item.src }}'
+        owner: root
+        group: root
+      notify:
+        - restart nginx
+        - restart uwsgi
+      loop:
+        - src: 'nginx.conf'
+          dest: '/etc/nginx/sites-available/default'
+        - src: 'uwsgi.ini'
+          dest: '/etc/uwsgi/apps-available/hebadash.ini'
+
+    - name: Activate uWSGI app
+      file:
+        src: '/etc/uwsgi/apps-available/hebadash.ini'
+        dest: '/etc/uwsgi/apps-enabled/hebadash.ini'
+        state: link
+      notify:
+        - restart uwsgi
+
+    - name: Ensure NginX and uWSGI start at boot
+      service:
+        name: '{{ item }}'
+        state: started
+        enabled: yes
+      loop:
+        - nginx
+        - uwsgi
+
+
+  handlers:
+
+    - name: restart nginx
+      service:
+        name: nginx
+        state: restarted
+
+    - name: restart uwsgi
+      service:
+        name: uwsgi
+        state: restarted
