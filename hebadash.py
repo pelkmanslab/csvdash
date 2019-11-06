@@ -19,7 +19,6 @@ app.layout = html.Div([
     html.Div(id='page-content')
 ])
 
-
 @app.callback(Output('page-content', 'children'),
               [Input('url', 'pathname')])
 def display_page(pathname):
@@ -34,6 +33,9 @@ def display_page(pathname):
     else:
         return '404'
     return header.layout, content, footer.layout
+
+# expose the Flask app object to uWSGI
+server = app.server
 
 
 if __name__ == '__main__':
