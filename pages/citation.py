@@ -20,10 +20,11 @@ layout = html.Div(
     html.P([
     'If you have used data available through KDML-db.org in your work, please cite the following publication:'
     ]),
-    
-    html.P(['KDML: a machine-learning framework for inference of multi-scale gene functions from genetic perturbation screens'
-    ]),
-    
+
+    html.A([
+        'KDML: a machine-learning framework for inference of multi-scale gene functions from genetic perturbation screens'
+    ], href="https://www.biorxiv.org/content/10.1101/761106v1"),
+
     html.P('Heba Sailem, Jens Rittscher, and Lucas Pelkmans'
     ),
     
