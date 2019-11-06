@@ -8,9 +8,7 @@ Created on Tue Oct 22 04:45:31 2019
 
 import dash_core_components as dcc
 import dash_html_components as html
-from dash.dependencies import Input, Output
 
-from app import app
 
 layout = html.Div(
 className='contents',
@@ -31,7 +29,7 @@ dcc.Markdown('''**Description**: A curated dataset consisting of 80 genome-scale
 ]),
 
 
-    
+
 html.H3('MCF7'),
 html.P([
 dcc.Markdown('''**Readout:** transcriptome'''),
@@ -39,10 +37,3 @@ dcc.Markdown('''**Tissue type:** Breast cancer'''),
 dcc.Markdown('''**Description:** An siRNA screen by the Broad Institute measuring the expression levels of 3,287 genes.'''),
 ])
 ])
-
-
-@app.callback(
-    Output('datasets', 'children'),
-    [Input('datasets', 'value')])
-def display_value(value):
-    return 'You have selected "{}"'.format(value)
